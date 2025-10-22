@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { ResponseItem, Stats, Progress } from '../types';
-import { RateLimiter, ConcurrencyLimiter } from '../utils/limiters';
+import { ConcurrencyLimiter } from '../utils/limiters';
 import { sendRequest } from '../services/api';
 
 const TOTAL_REQUESTS = 1000;
@@ -19,7 +19,6 @@ export const useRequestHandler = () => {
   const requestsCountRef = useRef<number>(0);
   const lastSecondRef = useRef<number>(Date.now());
 
-  // Function to update requests per second counter
   const updateRequestsPerSecond = () => {
     const now = Date.now();
     const timeDiff = now - lastSecondRef.current;
@@ -48,23 +47,16 @@ export const useRequestHandler = () => {
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
-    // Use the exact concurrency value as rate limit - client controls the rate
     const concurrencyLimiter = new ConcurrencyLimiter(concurrency);
-
     const requests = Array.from({ length: TOTAL_REQUESTS }, (_, i) => i + 1);
     
     try {
-      // Process requests in batches of concurrency size
       for (let i = 0; i < requests.length; i += concurrency) {
         const batch = requests.slice(i, i + concurrency);
-
-        console.log('Batch:', batch);
-        // Send batch of requests simultaneously
         const batchPromises = batch.map(index =>
           concurrencyLimiter.execute(async () => {
             const result = await sendRequest(index, signal);
             
-            // Update requests per second counter
             requestsCountRef.current++;
             updateRequestsPerSecond();
             
@@ -80,7 +72,6 @@ export const useRequestHandler = () => {
         
         await Promise.all(batchPromises);
         
-        // Wait 1 second before next batch (rate limiting)
         if (i + concurrency < requests.length) {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
