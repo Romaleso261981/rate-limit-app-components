@@ -49,7 +49,6 @@ export const useRequestHandler = () => {
     const signal = abortControllerRef.current.signal;
 
     // Use the exact concurrency value as rate limit - client controls the rate
-    const rateLimiter = new RateLimiter(concurrency);
     const concurrencyLimiter = new ConcurrencyLimiter(concurrency);
 
     const requests = Array.from({ length: TOTAL_REQUESTS }, (_, i) => i + 1);
