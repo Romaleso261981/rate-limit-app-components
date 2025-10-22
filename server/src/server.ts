@@ -4,7 +4,7 @@ import { createClient } from 'redis';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const RATE_LIMIT = 10; 
+const RATE_LIMIT = 50; // max requests per second 
 const REDIS_URL = process.env.REDIS_URL || 'redis://redis:6379';
 
 app.use(cors());
@@ -41,15 +41,13 @@ async function rateLimiter(req: Request, res: Response, next: any) {
 
     const count = await redisClient.incr(key);
 
-    // Add proportional delay if rate limit exceeded
+    // Block requests if rate limit exceeded
     if (count > RATE_LIMIT) {
-      const timePassed = now - currentWindowStart;
-      const timeRemaining = 1000 - timePassed;
-      const excessRequests = count - RATE_LIMIT;
-      const delayPerRequest = timeRemaining / excessRequests;
-      
-      console.log(`Rate limit exceeded (${count}/${RATE_LIMIT}), delaying by ${delayPerRequest}ms`);
-      await new Promise(resolve => setTimeout(resolve, delayPerRequest));
+      return res.status(429).json({
+        error: 'Too Many Requests',
+        message: `Rate limit of ${RATE_LIMIT} requests per second exceeded`,
+        retryAfter: 1000 - (now - currentWindowStart),
+      });
     }
 
     next();
