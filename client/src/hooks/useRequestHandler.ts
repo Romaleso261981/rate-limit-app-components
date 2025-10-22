@@ -30,6 +30,7 @@ export const useRequestHandler = () => {
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
+    // Use the exact concurrency value as rate limit - client controls the rate
     const rateLimiter = new RateLimiter(concurrency);
     const concurrencyLimiter = new ConcurrencyLimiter(concurrency);
 
@@ -48,7 +49,6 @@ export const useRequestHandler = () => {
                 success: prev.success + (result.success ? 1 : 0),
                 errors: prev.errors + (result.success ? 0 : 1),
               }));
-
               return result;
             })
           )
