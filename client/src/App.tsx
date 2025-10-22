@@ -12,6 +12,7 @@ function App() {
     responses,
     progress,
     stats,
+    requestsPerSecond,
     handleStart,
     handleStop,
   } = useRequestHandler();
@@ -30,7 +31,11 @@ function App() {
         />
 
         {(progress.completed > 0 || isRunning) && (
-          <StatsPanel progress={progress} stats={stats} />
+          <StatsPanel 
+            progress={progress} 
+            stats={stats} 
+            requestsPerSecond={requestsPerSecond}
+          />
         )}
 
         <ResultsList responses={responses} />

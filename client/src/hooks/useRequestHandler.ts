@@ -14,7 +14,22 @@ export const useRequestHandler = () => {
     total: TOTAL_REQUESTS 
   });
   const [stats, setStats] = useState<Stats>({ success: 0, errors: 0 });
+  const [requestsPerSecond, setRequestsPerSecond] = useState<number>(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestsCountRef = useRef<number>(0);
+  const lastSecondRef = useRef<number>(Date.now());
+
+  // Function to update requests per second counter
+  const updateRequestsPerSecond = () => {
+    const now = Date.now();
+    const timeDiff = now - lastSecondRef.current;
+    
+    if (timeDiff >= 1000) {
+      setRequestsPerSecond(requestsCountRef.current);
+      requestsCountRef.current = 0;
+      lastSecondRef.current = now;
+    }
+  };
 
   const handleStart = async () => {
     if (concurrency < 1 || concurrency > 100) {
@@ -26,6 +41,9 @@ export const useRequestHandler = () => {
     setResponses([]);
     setProgress({ completed: 0, total: TOTAL_REQUESTS });
     setStats({ success: 0, errors: 0 });
+    setRequestsPerSecond(0);
+    requestsCountRef.current = 0;
+    lastSecondRef.current = Date.now();
 
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
@@ -40,11 +58,17 @@ export const useRequestHandler = () => {
       // Process requests in batches of concurrency size
       for (let i = 0; i < requests.length; i += concurrency) {
         const batch = requests.slice(i, i + concurrency);
+
+        console.log('Batch:', batch);
         
         // Send batch of requests simultaneously
         const batchPromises = batch.map(index =>
           concurrencyLimiter.execute(async () => {
             const result = await sendRequest(index, signal);
+            
+            // Update requests per second counter
+            requestsCountRef.current++;
+            updateRequestsPerSecond();
             
             setResponses(prev => [...prev, result]);
             setProgress(prev => ({ ...prev, completed: prev.completed + 1 }));
@@ -86,6 +110,7 @@ export const useRequestHandler = () => {
     responses,
     progress,
     stats,
+    requestsPerSecond,
     handleStart,
     handleStop,
   };

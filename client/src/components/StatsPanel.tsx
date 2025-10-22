@@ -4,9 +4,10 @@ import { Progress, Stats } from '../types';
 interface StatsPanelProps {
   progress: Progress;
   stats: Stats;
+  requestsPerSecond: number;
 }
 
-export const StatsPanel: React.FC<StatsPanelProps> = ({ progress, stats }) => {
+export const StatsPanel: React.FC<StatsPanelProps> = ({ progress, stats, requestsPerSecond }) => {
   return (
     <div className="stats-panel">
       <div className="stat-card">
@@ -30,6 +31,11 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ progress, stats }) => {
       <div className="stat-card error">
         <span className="stat-label">Errors</span>
         <span className="stat-value">{stats.errors}</span>
+      </div>
+
+      <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+        <span className="stat-label">Requests/sec</span>
+        <span className="stat-value">{requestsPerSecond}</span>
       </div>
     </div>
   );
