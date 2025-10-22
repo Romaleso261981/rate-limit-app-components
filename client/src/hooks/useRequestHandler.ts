@@ -59,7 +59,6 @@ export const useRequestHandler = () => {
         const batch = requests.slice(i, i + concurrency);
 
         console.log('Batch:', batch);
-        
         // Send batch of requests simultaneously
         const batchPromises = batch.map(index =>
           concurrencyLimiter.execute(async () => {
