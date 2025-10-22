@@ -1,5 +1,6 @@
 export interface ResponseItem {
   index: number;
+  activeRequests: number;
   success: boolean;
   error?: string;
   timestamp: number;

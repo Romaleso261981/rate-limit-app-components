@@ -20,6 +20,7 @@ export const sendRequest = async (
       const errorData = await response.json().catch(() => ({}));
       return {
         index,
+        activeRequests: errorData.activeRequests || 0,
         success: false,
         error: errorData.message || `HTTP ${response.status}`,
         timestamp: Date.now(),
@@ -29,6 +30,7 @@ export const sendRequest = async (
     const data = await response.json();
     return {
       index: data.index,
+      activeRequests: data.activeRequests,
       success: true,
       timestamp: Date.now(),
     };
@@ -38,6 +40,7 @@ export const sendRequest = async (
     }
     return {
       index,
+      activeRequests: 0,
       success: false,
       error: error.message || 'Network error',
       timestamp: Date.now(),

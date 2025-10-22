@@ -21,8 +21,10 @@ export const ResultsList: React.FC<ResultsListProps> = ({ responses }) => {
           >
             <span className="result-index">#{response.index}</span>
             {!response.success && (
-              <span className="result-error">{response.error}</span>
+              <span className="result-error">{response.activeRequests}</span>
             )}
+            <span className="result-active-requests">Active Requests: {response.activeRequests}</span>
+            <span className="result-error">{response.error}</span>
           </div>
         ))}
       </div>

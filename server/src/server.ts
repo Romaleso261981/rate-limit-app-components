@@ -19,14 +19,14 @@ async function rateLimiter(req: Request, res: Response, next: any) {
     });
   }
 
-  activeRequests++;
+  activeRequests = activeRequests + 1;
 
   res.on('finish', () => {
-    activeRequests--;
+    activeRequests = activeRequests - 1;
   });
 
   res.on('close', () => {
-    activeRequests--;
+    activeRequests = activeRequests - 1;
   });
 
   next();
@@ -38,7 +38,10 @@ app.post('/api', rateLimiter, async (req: Request, res: Response) => {
   const delay = Math.floor(Math.random() * 1000) + 1;
   await new Promise(resolve => setTimeout(resolve, delay));
 
+  activeRequests = activeRequests - 1;
+
   res.json({
+    index,
     activeRequests,
     message: 'Success',
     delay,
