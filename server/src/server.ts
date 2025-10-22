@@ -1,60 +1,40 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { createClient } from 'redis';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const RATE_LIMIT = 50; // max requests per second 
-const REDIS_URL = process.env.REDIS_URL || 'redis://redis:6379';
+const RATE_LIMIT = 50; // max concurrent requests
 
 app.use(cors());
 app.use(express.json());
 
-const redisClient = createClient({ url: REDIS_URL });
-
-redisClient.on('error', (err) => console.error('Redis Client Error', err));
-redisClient.on('connect', () => console.log('Connected to Redis'));
-
-(async () => {
-  try {
-    await redisClient.connect();
-  } catch (error) {
-    console.error('Failed to connect to Redis:', error);
-  }
-})();
+// Simple in-memory counter
+let activeRequests = 0;
 
 async function rateLimiter(req: Request, res: Response, next: any) {
-  const now = Date.now();
-  const key = 'request_count';
-  const windowKey = 'window_start';
-
-  try {
-    const windowStart = await redisClient.get(windowKey);
-    const currentWindowStart = windowStart ? parseInt(windowStart) : now;
-
-    // If more than 1 second has passed, reset the window
-    if (now - currentWindowStart >= 1000) {
-      await redisClient.set(windowKey, now.toString());
-      await redisClient.set(key, '0');
-      return next();
-    }
-
-    const count = await redisClient.incr(key);
-
-    // Block requests if rate limit exceeded
-    if (count > RATE_LIMIT) {
-      return res.status(429).json({
-        error: 'Too Many Requests',
-        message: `Rate limit of ${RATE_LIMIT} requests per second exceeded`,
-        retryAfter: 1000 - (now - currentWindowStart),
-      });
-    }
-
-    next();
-  } catch (error) {
-    console.error('Rate limiter error:', error);
-    next();
+  // Block if already at max concurrency
+  if (activeRequests >= RATE_LIMIT) {
+    return res.status(429).json({
+      error: 'Too Many Requests',
+      message: `Rate limit of ${RATE_LIMIT} concurrent requests exceeded`,
+      retryAfter: 1000,
+    });
   }
+
+  // Increment active requests when request comes in
+  activeRequests++;
+
+  // Decrement active requests when response is sent
+  res.on('finish', () => {
+    activeRequests--;
+  });
+
+  // Also handle errors
+  res.on('close', () => {
+    activeRequests--;
+  });
+
+  next();
 }
 
 app.post('/api', rateLimiter, async (req: Request, res: Response) => {
@@ -79,9 +59,8 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-process.on('SIGINT', async () => {
+process.on('SIGINT', () => {
   console.log('Shutting down gracefully...');
-  await redisClient.quit();
   process.exit(0);
 });
 
