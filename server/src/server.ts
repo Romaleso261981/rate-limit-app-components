@@ -4,7 +4,7 @@ import { createClient } from 'redis';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const RATE_LIMIT = 1000; // Much higher limit, let client control the rate
+const RATE_LIMIT = 10; 
 const REDIS_URL = process.env.REDIS_URL || 'redis://redis:6379';
 
 app.use(cors());

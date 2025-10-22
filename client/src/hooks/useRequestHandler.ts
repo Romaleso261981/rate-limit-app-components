@@ -37,23 +37,32 @@ export const useRequestHandler = () => {
     const requests = Array.from({ length: TOTAL_REQUESTS }, (_, i) => i + 1);
     
     try {
-      await Promise.all(
-        requests.map(index =>
-          rateLimiter.execute(() =>
-            concurrencyLimiter.execute(async () => {
-              const result = await sendRequest(index, signal);
-              
-              setResponses(prev => [...prev, result]);
-              setProgress(prev => ({ ...prev, completed: prev.completed + 1 }));
-              setStats(prev => ({
-                success: prev.success + (result.success ? 1 : 0),
-                errors: prev.errors + (result.success ? 0 : 1),
-              }));
-              return result;
-            })
-          )
-        )
-      );
+      // Process requests in batches of concurrency size
+      for (let i = 0; i < requests.length; i += concurrency) {
+        const batch = requests.slice(i, i + concurrency);
+        
+        // Send batch of requests simultaneously
+        const batchPromises = batch.map(index =>
+          concurrencyLimiter.execute(async () => {
+            const result = await sendRequest(index, signal);
+            
+            setResponses(prev => [...prev, result]);
+            setProgress(prev => ({ ...prev, completed: prev.completed + 1 }));
+            setStats(prev => ({
+              success: prev.success + (result.success ? 1 : 0),
+              errors: prev.errors + (result.success ? 0 : 1),
+            }));
+            return result;
+          })
+        );
+        
+        await Promise.all(batchPromises);
+        
+        // Wait 1 second before next batch (rate limiting)
+        if (i + concurrency < requests.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
     } catch (error: any) {
       if (error.name !== 'AbortError') {
         console.error('Error during execution:', error);
