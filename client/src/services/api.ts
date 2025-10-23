@@ -30,7 +30,7 @@ export const sendRequest = async (
     const data = await response.json();
     return {
       index: data.index,
-      activeRequests: data.activeRequests,
+      activeRequests: data.activeCount,
       success: true,
       timestamp: Date.now(),
     };

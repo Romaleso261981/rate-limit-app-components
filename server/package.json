@@ -1,7 +1,7 @@
 {
   "name": "rate-limit-server",
   "version": "1.0.0",
-  "description": "Rate-limited Express server",
+  "description": "Rate-limited Express server with Redis",
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "redis": "^4.6.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",
