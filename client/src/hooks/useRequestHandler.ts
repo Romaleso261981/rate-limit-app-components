@@ -33,25 +33,33 @@ export const useRequestHandler = () => {
     const requests = Array.from({ length: TOTAL_REQUESTS }, (_, i) => i + 1);
     
     try {
+      // Process requests in chunks maintaining exact concurrency
       for (let i = 0; i < requests.length; i += concurrency) {
-        const batch = requests.slice(i, i + concurrency);
-        const batchPromises = batch.map(async (index) => {
-          const result = await sendRequest(index, signal);
-          
-          
-          setResponses(prev => [...prev, result]);
-          setProgress(prev => ({ ...prev, completed: prev.completed + 1 }));
-          setStats(prev => ({
-            success: prev.success + (result.success ? 1 : 0),
-            errors: prev.errors + (result.success ? 0 : 1),
-          }));
-          return result;
+        const chunk = requests.slice(i, i + concurrency);
+        
+        const chunkPromises = chunk.map(async (index) => {
+          try {
+            const result = await sendRequest(index, signal);
+            
+            setResponses(prev => [...prev, result]);
+            setProgress(prev => ({ ...prev, completed: prev.completed + 1 }));
+            setStats(prev => ({
+              success: prev.success + (result.success ? 1 : 0),
+              errors: prev.errors + (result.success ? 0 : 1),
+            }));
+          } catch (error: any) {
+            if (error.name !== 'AbortError') {
+              console.error('Request error:', error);
+            }
+          }
         });
         
-        await Promise.all(batchPromises);
+        // Wait for all requests in this chunk to complete
+        await Promise.allSettled(chunkPromises);
         
-        if (i + concurrency < requests.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        // Check if we should stop
+        if (signal.aborted) {
+          break;
         }
       }
     } catch (error: any) {
